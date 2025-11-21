@@ -130,6 +130,17 @@ body {
     margin-bottom: 0.5rem;
 }
 
+.message .message-model-label {
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+    color: var(--accent-blue);
+}
+
+.message .message-model-label.reasoned {
+    color: var(--accent-orange);
+}
+
 .message.loading::after {
     content: '...';
     animation: dots 1s steps(3, end) infinite;
@@ -141,10 +152,42 @@ body {
     60%, 100% { content: '...'; }
 }
 
-/* Reasoning Panel */
+/* Model Badges */
+.model-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--accent-blue);
+    color: white;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.model-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+.model-label.deepcoder {
+    background-color: var(--accent-orange);
+    color: black;
+}
+
+.model-label.gemma {
+    background-color: var(--accent-blue);
+    color: white;
+}
+
+/* Reasoning Panel - Always Visible */
 .reasoning-panel {
     border-top: 1px solid var(--border-color);
     background-color: var(--bg-tertiary);
+    min-height: 150px;
+    max-height: 250px;
+    display: flex;
+    flex-direction: column;
 }
 
 .reasoning-header {
@@ -152,25 +195,43 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    cursor: pointer;
     font-size: 0.9rem;
-    color: var(--accent-orange);
+    border-bottom: 1px solid var(--border-color);
 }
 
-.reasoning-header:hover {
-    background-color: rgba(251, 146, 60, 0.1);
+.reasoning-status {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.reasoning-status.thinking {
+    background-color: var(--accent-orange);
+    color: black;
+    animation: pulse 1s infinite;
+}
+
+.reasoning-status.complete {
+    background-color: var(--accent-green);
+    color: black;
+}
+
+.reasoning-status.skipped {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 .reasoning-content {
-    display: none;
-    max-height: 200px;
+    flex: 1;
     overflow-y: auto;
     padding: 1rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.reasoning-content.expanded {
-    display: block;
 }
 
 .reasoning-content pre {
@@ -178,6 +239,12 @@ body {
     white-space: pre-wrap;
     color: var(--text-secondary);
     font-family: 'Consolas', monospace;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.reasoning-content pre.active-reasoning {
+    color: var(--accent-orange);
 }
 
 /* Chat Input */

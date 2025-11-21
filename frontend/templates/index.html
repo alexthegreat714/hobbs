@@ -21,7 +21,7 @@
         <main class="main-content">
             <!-- Left Panel: Chat -->
             <section class="chat-panel">
-                <h2>Assistant</h2>
+                <h2>Assistant <span class="model-badge" id="active-model">Gemma 3</span></h2>
 
                 <!-- Chat Messages -->
                 <div class="chat-messages" id="chat-messages">
@@ -32,14 +32,22 @@
                     </div>
                 </div>
 
-                <!-- Reasoning Panel (collapsible) -->
+                <!-- Reasoning Panel (always visible when active) -->
                 <div class="reasoning-panel" id="reasoning-panel">
-                    <div class="reasoning-header" onclick="toggleReasoning()">
-                        <span>DeepCoder Reasoning</span>
-                        <span id="reasoning-toggle">+</span>
+                    <div class="reasoning-header">
+                        <span class="model-label deepcoder">DeepCoder Reasoning</span>
+                        <span id="reasoning-status" class="reasoning-status">Waiting...</span>
                     </div>
                     <div class="reasoning-content" id="reasoning-content">
-                        <pre id="reasoning-text">No reasoning trace yet.</pre>
+                        <pre id="reasoning-text">When I need to think deeply about your question, my reasoning process will appear here.
+
+I (Gemma) decide when to invoke DeepCoder based on:
+- Complex multi-step analysis
+- Correlating multiple data sources
+- Planning or troubleshooting
+- "Why" or "What if" questions
+
+Simple questions get direct answers without reasoning.</pre>
                     </div>
                 </div>
 

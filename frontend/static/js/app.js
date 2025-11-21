@@ -128,6 +128,9 @@ async function sendMessage() {
     // Add user message
     addChatMessage(message, 'user');
 
+    // Update reasoning status to "thinking"
+    setReasoningStatus('thinking', 'Gemma evaluating...');
+
     // Add loading indicator
     const loadingMsg = addChatMessage('Thinking', 'assistant loading');
 
@@ -144,19 +147,28 @@ async function sendMessage() {
         loadingMsg.remove();
 
         if (data.ok) {
-            // Add response with reasoning badge if used
-            addChatMessage(data.response, 'assistant', data.reasoning_used);
-
-            // Update reasoning panel
             if (data.reasoning_used && data.reasoning_trace) {
-                updateReasoningPanel(data.reasoning_trace);
+                // Show DeepCoder reasoning first
+                setReasoningStatus('complete', 'Reasoning complete');
+                updateReasoningPanel(data.reasoning_trace, true);
+
+                // Add Gemma's summarized response with reasoning badge
+                addChatMessage(data.response, 'assistant', true, 'Gemma (summarized from DeepCoder)');
+            } else {
+                // Direct response - no reasoning needed
+                setReasoningStatus('skipped', 'Direct response');
+                updateReasoningPanel('Gemma determined this question could be answered directly without deep reasoning.', false);
+
+                addChatMessage(data.response, 'assistant', false, 'Gemma (direct)');
             }
         } else {
+            setReasoningStatus('skipped', 'Error');
             addChatMessage(`Error: ${data.error || 'Unknown error'}`, 'assistant');
         }
 
     } catch (e) {
         loadingMsg.remove();
+        setReasoningStatus('skipped', 'Error');
         addChatMessage(`Error: ${e.message}`, 'assistant');
     }
 
@@ -164,15 +176,23 @@ async function sendMessage() {
     sendBtn.disabled = false;
 }
 
-function addChatMessage(content, type, hadReasoning = false) {
+function addChatMessage(content, type, hadReasoning = false, modelLabel = null) {
     const container = document.getElementById('chat-messages');
     const msg = document.createElement('div');
     msg.className = `message ${type}`;
 
     let html = '';
-    if (hadReasoning) {
-        html += '<span class="reasoning-badge">Used Reasoning</span><br>';
+
+    // Add model label for assistant messages
+    if (type === 'assistant' && modelLabel) {
+        const labelClass = hadReasoning ? 'gemma reasoned' : 'gemma';
+        html += `<div class="message-model-label ${labelClass}">${modelLabel}</div>`;
     }
+
+    if (hadReasoning) {
+        html += '<span class="reasoning-badge">Used DeepCoder</span> ';
+    }
+
     html += `<div class="message-content">${escapeHtml(content)}</div>`;
 
     msg.innerHTML = html;
@@ -182,22 +202,20 @@ function addChatMessage(content, type, hadReasoning = false) {
     return msg;
 }
 
-function updateReasoningPanel(trace) {
-    const content = document.getElementById('reasoning-text');
-    content.textContent = trace;
-
-    // Auto-expand if new reasoning
-    const panel = document.getElementById('reasoning-content');
-    panel.classList.add('expanded');
-    document.getElementById('reasoning-toggle').textContent = '-';
+function setReasoningStatus(status, text) {
+    const statusEl = document.getElementById('reasoning-status');
+    statusEl.className = `reasoning-status ${status}`;
+    statusEl.textContent = text;
 }
 
-function toggleReasoning() {
-    const content = document.getElementById('reasoning-content');
-    const toggle = document.getElementById('reasoning-toggle');
+function updateReasoningPanel(trace, isActiveReasoning = false) {
+    const content = document.getElementById('reasoning-text');
+    content.textContent = trace;
+    content.className = isActiveReasoning ? 'active-reasoning' : '';
 
-    content.classList.toggle('expanded');
-    toggle.textContent = content.classList.contains('expanded') ? '-' : '+';
+    // Scroll to bottom of reasoning
+    const panel = document.getElementById('reasoning-content');
+    panel.scrollTop = panel.scrollHeight;
 }
 
 // =============================================================================
