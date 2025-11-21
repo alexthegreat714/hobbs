@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from schemas.shared import TaskEnvelope
 from config.settings import log_event
 from server.weather.weather_manager import weather_manager
+from server.automation.automation_engine import automation_engine
 
 
 router = APIRouter()
@@ -133,10 +134,26 @@ async def predict_weather(task: TaskEnvelope) -> dict:
     # Format forecast for response
     forecast_list = format_forecast_response(forecast, confidence)
 
+    # Process through automation engine for weather alerts
+    automation_result = automation_engine.process_weather_update({
+        "forecasts": [
+            {
+                "time": entry.get("time"),
+                "temperature_2m": entry.get("temperature"),
+                "precipitation": entry.get("precipitation_probability", 0),
+            }
+            for entry in forecast_list
+        ]
+    })
+
     return {
         "ok": True,
         "forecast": forecast_list,
         "confidence": confidence,
         "source": source,
         "location": forecast.get("location", {}),
+        "automation": {
+            "alerts": automation_result.get("alerts", []),
+            "triggered_actions": len(automation_result.get("triggered_actions", [])),
+        },
     }

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from schemas.shared import TaskEnvelope
 from config.settings import log_event
 from server.sensors.sensor_manager import sensor_manager
+from server.automation.automation_engine import automation_engine
 
 
 router = APIRouter()
@@ -88,7 +89,19 @@ async def sensor_ingest(task: TaskEnvelope) -> dict:
         task_id=task.task_id,
     )
 
+    # Process through automation engine for rule evaluation
+    automation_result = None
+    if isinstance(sensor_data.value, (int, float)):
+        automation_result = automation_engine.process_sensor_data(
+            sensor_id=task.task_id,
+            sensor_type=sensor_data.sensor_type,
+            value=float(sensor_data.value),
+        )
+
     return {
         "ok": True,
         "stored": result["stored"],
+        "automation": {
+            "triggered_actions": len(automation_result.get("triggered_actions", [])) if automation_result else 0,
+        },
     }

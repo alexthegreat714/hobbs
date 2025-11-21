@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "rules": [
+    {
+      "id": "irrigation_moisture_low",
+      "trigger": {"sensor_type": "moisture", "operator": "<", "value": 0.15},
+      "condition": {"weather": "no_freeze_soon"},
+      "action": {"valve_id": "main_irrigation", "command": "open", "value": 1.0}
+    },
+    {
+      "id": "close_irrigation_after_weather_alert",
+      "trigger": {"event": "hobbs.weather.alert"},
+      "action": {"valve_id": "main_irrigation", "command": "close"}
+    },
+    {
+      "id": "irrigation_moisture_high",
+      "trigger": {"sensor_type": "moisture", "operator": ">", "value": 0.80},
+      "action": {"valve_id": "main_irrigation", "command": "close"}
+    },
+    {
+      "id": "temperature_high_alert",
+      "trigger": {"sensor_type": "temperature", "operator": ">", "value": 35.0},
+      "action": {"emit_event": "hobbs.automation.temperature_alert", "severity": "warning"}
+    }
+  ]
+}

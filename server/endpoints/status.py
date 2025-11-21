@@ -10,6 +10,7 @@ from server.sensors.sensor_manager import sensor_manager
 from server.weather.weather_manager import weather_manager
 from server.camera.camera_manager import camera_manager
 from server.actuators.valve_controller import valve_controller
+from server.automation.automation_engine import automation_engine
 
 router = APIRouter()
 
@@ -33,6 +34,9 @@ async def get_status() -> dict:
     """
     log_event("status", {"action": "status_check"})
 
+    # Get automation stats
+    automation_stats = automation_engine.get_stats()
+
     return {
         "status": "ok",
         "agent": settings.AGENT_NAME,
@@ -45,4 +49,7 @@ async def get_status() -> dict:
         "camera_index_size": camera_manager.get_index_size(),
         "valves_known": valve_controller.get_valves_count(),
         "valve_events_count": valve_controller.get_history_count(),
+        "automation_rules": automation_stats.get("rules_loaded", 0),
+        "automation_schedules": automation_stats.get("schedules_loaded", 0),
+        "automation_history_count": automation_stats.get("history_count", 0),
     }

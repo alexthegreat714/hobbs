@@ -13,7 +13,7 @@ class Settings:
     """Application settings for Hobbs Agent."""
 
     AGENT_NAME: str = "hobbs"
-    VERSION: str = "0.5.0"
+    VERSION: str = "0.6.0"
 
     # Capabilities exposed by this agent
     CAPABILITIES: list = [

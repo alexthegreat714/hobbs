@@ -1,0 +1,20 @@
+{
+  "version": "0.1.0",
+  "schedule": [
+    {
+      "id": "midday_irrigation_check",
+      "time": "12:00",
+      "task": {"type": "automation_check", "payload": {"rule_group": "irrigation"}}
+    },
+    {
+      "id": "morning_sensor_check",
+      "time": "06:00",
+      "task": {"type": "automation_check", "payload": {"rule_group": "all"}}
+    },
+    {
+      "id": "evening_sensor_check",
+      "time": "18:00",
+      "task": {"type": "automation_check", "payload": {"rule_group": "all"}}
+    }
+  ]
+}

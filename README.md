@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 5)
+# Hobbs Agent (Phase 6)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -42,6 +42,16 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Valve change event emitters to Congress
 - Support for open/close/toggle/set actions
 - State persistence across restarts
+
+### Phase 6 (Automation Engine)
+- Rule-based automation engine
+- Configurable automation rules (JSON)
+- Scheduled task execution
+- Anomaly detection stub (placeholder for ML)
+- Integration with sensor ingest pipeline
+- Integration with weather prediction pipeline
+- Weather alert detection (freeze, precipitation)
+- Automation history logging
 
 ## Endpoints
 
@@ -202,6 +212,12 @@ curl -X POST http://localhost:5055/control_valve \
             __init__.py
             valve_controller.py     # Valve state management
             aegis_client.py         # Aegis verification stub
+        automation/                 # Phase 6: Automation engine
+            __init__.py
+            automation_engine.py    # Main automation coordinator
+            rule_engine.py          # Rule evaluation engine
+            schedule_engine.py      # Scheduled task engine
+            anomaly_engine.py       # Anomaly detection stub
         utils/
             __init__.py
             file_ops.py
@@ -215,6 +231,8 @@ curl -X POST http://localhost:5055/control_valve \
     /config/
         __init__.py
         settings.py
+        automation_rules.json       # Phase 6: Automation rules
+        automation_schedule.json    # Phase 6: Scheduled tasks
     /policies/
         __init__.py
         hobbs_policies.json
@@ -228,6 +246,8 @@ curl -X POST http://localhost:5055/control_valve \
         /actuators/                 # Phase 5: Actuator data
             valve_state.json        # Current valve states
             valve_history.jsonl     # Valve action history
+        /automation/                # Phase 6: Automation data
+            automation_history.jsonl
         /index/
             sensor_index.jsonl
             weather_index.jsonl
@@ -239,6 +259,7 @@ curl -X POST http://localhost:5055/control_valve \
         test_weather.py
         test_intruder_detection.py
         test_control_valve.py       # Phase 5: Valve control tests
+        test_automation.py          # Phase 6: Automation tests
 ```
 
 ## Valve Control Payload Schema
@@ -340,7 +361,7 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
@@ -348,14 +369,99 @@ The `/status` endpoint returns:
   "camera_events_today": 2,
   "camera_index_size": 15,
   "valves_known": 3,
-  "valve_events_count": 25
+  "valve_events_count": 25,
+  "automation_rules": 4,
+  "automation_schedules": 3,
+  "automation_history_count": 12
 }
 ```
 
 - `valves_known`: Number of valves in state file
 - `valve_events_count`: Total entries in valve_history.jsonl
+- `automation_rules`: Number of loaded automation rules
+- `automation_schedules`: Number of scheduled tasks
+- `automation_history_count`: Total entries in automation_history.jsonl
+
+## Automation Engine
+
+### Rule Configuration
+
+Rules are defined in `config/automation_rules.json`:
+
+```json
+{
+  "version": "0.1.0",
+  "rules": [
+    {
+      "id": "irrigation_moisture_low",
+      "trigger": {"sensor_type": "moisture", "operator": "<", "value": 0.15},
+      "condition": {"weather": "no_freeze_soon"},
+      "action": {"valve_id": "main_irrigation", "command": "open", "value": 1.0}
+    }
+  ]
+}
+```
+
+### Trigger Types
+
+| Trigger Type | Description | Example |
+|--------------|-------------|---------|
+| Sensor | Triggers on sensor value | `{"sensor_type": "moisture", "operator": "<", "value": 0.15}` |
+| Event | Triggers on event | `{"event": "hobbs.weather.alert"}` |
+
+### Operators
+
+Supported operators: `<`, `<=`, `>`, `>=`, `==`, `!=`
+
+### Conditions
+
+| Condition | Description |
+|-----------|-------------|
+| `no_freeze_soon` | No freezing temperatures in next 24 hours |
+| `no_rain_soon` | No precipitation in next 6 hours |
+
+### Schedule Configuration
+
+Schedules are defined in `config/automation_schedule.json`:
+
+```json
+{
+  "version": "0.1.0",
+  "schedule": [
+    {
+      "id": "midday_irrigation_check",
+      "time": "12:00",
+      "task": {"type": "automation_check", "payload": {"rule_group": "irrigation"}}
+    }
+  ]
+}
+```
+
+### Anomaly Detection
+
+The anomaly detection engine is currently a **stub** that returns no anomalies for all inputs. Future implementation will include ML-based anomaly detection for:
+- Sensor value anomalies
+- Pattern anomalies (time-series)
+- System state anomalies
+
+### Automation History
+
+Located at: `~/Desktop/Engineering/Hobbs/data/automation/automation_history.jsonl`
+
+Each line contains:
+```json
+{
+  "trigger_type": "sensor_trigger|event_trigger|schedule_trigger",
+  "action": {
+    "rule_id": "string",
+    "action": {...},
+    "trigger_context": {...}
+  },
+  "timestamp": "ISO8601"
+}
+```
 
 ## Version
 
-- Current: 0.5.0
-- Phase: 5 (Physical Control Layer)
+- Current: 0.6.0
+- Phase: 6 (Automation Engine)
