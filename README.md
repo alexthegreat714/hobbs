@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 7)
+# Hobbs Agent (Phase 8)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -63,6 +63,21 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Sensor trend analysis
 - Memory rebuild via `/run_task`
 
+### Phase 8 (Adaptive Learning + Rule Refinement)
+- Learning engine with rolling averages and baselines
+- Statistical pattern detection (no neural nets/embeddings)
+- Sensor baseline computation with trend analysis
+- Intruder pattern analysis (peak hours, hotspot cameras)
+- Weather-sensor correlation analysis
+- Valve usage pattern tracking
+- Rule refinement engine with automated suggestions
+- Threshold adjustment recommendations
+- Alert schedule suggestions based on patterns
+- Statistical anomaly detection (z-score based)
+- `/learning_report` endpoint (GET/POST)
+- Learning cycle triggered every 50 events
+- Learning cache and recommendations persistence
+
 ## Endpoints
 
 ### Mandatory Endpoints
@@ -83,6 +98,7 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 | `/detect_intruder` | POST | Camera image intruder detection |
 | `/control_valve` | POST | Valve control with Aegis verification |
 | `/memory_query` | POST | Query long-term memory and get statistics |
+| `/learning_report` | GET/POST | Get learning insights and recommendations |
 
 ## Installation
 
@@ -233,6 +249,11 @@ curl -X POST http://localhost:5055/control_valve \
             __init__.py
             memory_manager.py       # Memory consolidation
             query_engine.py         # Memory search and stats
+        learning/                   # Phase 8: Adaptive Learning
+            __init__.py
+            learning_engine.py      # Baseline and pattern computation
+            rule_refinement.py      # Rule suggestion generation
+            patterns.py             # Statistical utilities
         utils/
             __init__.py
             file_ops.py
@@ -269,6 +290,10 @@ curl -X POST http://localhost:5055/control_valve \
             intruders.jsonl         # Camera/intruder events
             weather_summary.jsonl   # Weather event summaries
             sensor_summary.jsonl    # Sensor event summaries
+        /learning/                  # Phase 8: Learning data
+            learning_cache.json     # Cached baselines and patterns
+            recommendations.jsonl   # Rule suggestions history
+            event_counter.json      # Event counter for learning cycle
         /index/
             sensor_index.jsonl
             weather_index.jsonl
@@ -282,6 +307,7 @@ curl -X POST http://localhost:5055/control_valve \
         test_control_valve.py       # Phase 5: Valve control tests
         test_automation.py          # Phase 6: Automation tests
         test_memory.py              # Phase 7: Memory tests
+        test_learning.py            # Phase 8: Learning tests
 ```
 
 ## Valve Control Payload Schema
@@ -383,7 +409,7 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
@@ -397,7 +423,9 @@ The `/status` endpoint returns:
   "automation_history_count": 12,
   "memory_events_count": 100,
   "intruder_events_count": 15,
-  "weather_summary_count": 20
+  "weather_summary_count": 20,
+  "learning_cache_exists": true,
+  "learning_events_until_cycle": 35
 }
 ```
 
@@ -409,6 +437,8 @@ The `/status` endpoint returns:
 - `memory_events_count`: Total entries in events.jsonl
 - `intruder_events_count`: Total entries in intruders.jsonl
 - `weather_summary_count`: Total entries in weather_summary.jsonl
+- `learning_cache_exists`: Whether learning cache file exists
+- `learning_events_until_cycle`: Events remaining until next learning cycle
 
 ## Automation Engine
 
@@ -603,7 +633,89 @@ curl -X POST http://localhost:5055/run_task \
   }'
 ```
 
+## Learning Report Endpoint
+
+The `/learning_report` endpoint provides access to learned patterns and recommendations.
+
+### GET /learning_report
+
+Returns cached learning data and recent recommendations:
+
+```bash
+curl http://localhost:5055/learning_report
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "learning": {
+    "timestamp": "2025-11-21T12:00:00Z",
+    "events_analyzed": 150,
+    "sensor_baselines": {
+      "moisture": {"avg": 0.35, "std_dev": 0.08, "trend": "stable"}
+    },
+    "intruder_patterns": {
+      "total_intruders": 12,
+      "peak_hours": ["02", "22", "23"]
+    }
+  },
+  "recommendations": [
+    {
+      "id": "suggest_adjust_moisture_threshold",
+      "type": "threshold_adjustment",
+      "priority": "medium",
+      "description": "Sensor 'moisture' has high variance..."
+    }
+  ]
+}
+```
+
+### POST /learning_report
+
+Request a learning report or trigger a learning cycle:
+
+```bash
+curl -X POST http://localhost:5055/learning_report \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "learn_01",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "learning_report",
+    "payload": {"action": "refresh"},
+    "timestamp": "2025-11-21T00:00:00Z"
+  }'
+```
+
+Payload options:
+- `action: "get"` (default) - Return cached report
+- `action: "refresh"` - Run new learning cycle and return results
+
+### Learning Cycle
+
+The learning engine analyzes historical data to compute:
+- **Sensor Baselines**: Mean, std deviation, trends per sensor type
+- **Intruder Patterns**: Peak hours, hotspot cameras, object types
+- **Weather Correlation**: Temperature vs. moisture correlation
+- **Valve Patterns**: Automation vs. manual ratio, per-valve stats
+
+Learning cycles are triggered:
+- Manually via POST with `action: "refresh"`
+- Automatically every 50 sensor/weather events
+
+### Rule Suggestions
+
+The rule refinement engine generates suggestions based on patterns:
+
+| Suggestion Type | Trigger | Example |
+|-----------------|---------|---------|
+| `threshold_adjustment` | High variance sensor | "Adjust moisture threshold to 0.25" |
+| `schedule_addition` | Intruder peak hours | "Enable high-alert at 02:00-03:00" |
+| `new_automation_rule` | Manual valve patterns | "Automate irrigation based on moisture" |
+| `combined_rule` | Weather correlation | "Increase irrigation during hot weather" |
+
 ## Version
 
-- Current: 0.7.0
-- Phase: 7 (RAG Memory & Pattern Insight)
+- Current: 0.8.0
+- Phase: 8 (Adaptive Learning + Rule Refinement)

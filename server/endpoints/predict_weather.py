@@ -13,6 +13,7 @@ from schemas.shared import TaskEnvelope
 from config.settings import log_event
 from server.weather.weather_manager import weather_manager
 from server.automation.automation_engine import automation_engine
+from server.learning.learning_engine import learning_engine
 
 
 router = APIRouter()
@@ -146,6 +147,14 @@ async def predict_weather(task: TaskEnvelope) -> dict:
         ]
     })
 
+    # Increment event counter and check if learning cycle should run
+    learning_engine.increment_event_counter()
+    learning_triggered = False
+    if learning_engine.should_run_learning_cycle(threshold=50):
+        learning_engine.run_full_learning_cycle()
+        learning_engine.reset_event_counter()
+        learning_triggered = True
+
     return {
         "ok": True,
         "forecast": forecast_list,
@@ -156,4 +165,5 @@ async def predict_weather(task: TaskEnvelope) -> dict:
             "alerts": automation_result.get("alerts", []),
             "triggered_actions": len(automation_result.get("triggered_actions", [])),
         },
+        "learning_cycle_triggered": learning_triggered,
     }

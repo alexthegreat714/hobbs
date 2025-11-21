@@ -12,6 +12,7 @@ from server.camera.camera_manager import camera_manager
 from server.actuators.valve_controller import valve_controller
 from server.automation.automation_engine import automation_engine
 from server.memory.memory_manager import memory_manager
+from server.learning.learning_engine import learning_engine
 
 router = APIRouter()
 
@@ -56,4 +57,6 @@ async def get_status() -> dict:
         "memory_events_count": memory_manager.get_events_count(),
         "intruder_events_count": memory_manager.get_intruders_count(),
         "weather_summary_count": memory_manager.get_weather_summary_count(),
+        "learning_cache_exists": learning_engine.cache_file.exists(),
+        "learning_events_until_cycle": learning_engine.get_events_until_cycle(threshold=50),
     }

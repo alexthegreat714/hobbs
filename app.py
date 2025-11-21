@@ -27,6 +27,7 @@ from server.endpoints import (
     detect_intruder_router,
     control_valve_router,
     memory_query_router,
+    learning_report_router,
 )
 
 
@@ -87,6 +88,7 @@ app.include_router(predict_weather_router)
 app.include_router(detect_intruder_router)
 app.include_router(control_valve_router)
 app.include_router(memory_query_router)
+app.include_router(learning_report_router)
 
 
 @app.get("/")

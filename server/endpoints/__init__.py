@@ -8,6 +8,7 @@ from .predict_weather import router as predict_weather_router
 from .detect_intruder import router as detect_intruder_router
 from .control_valve import router as control_valve_router
 from .memory_query import router as memory_query_router
+from .learning_report import router as learning_report_router
 
 __all__ = [
     "run_task_router",
@@ -19,4 +20,5 @@ __all__ = [
     "detect_intruder_router",
     "control_valve_router",
     "memory_query_router",
+    "learning_report_router",
 ]

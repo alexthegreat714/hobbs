@@ -14,6 +14,7 @@ from schemas.shared import TaskEnvelope
 from config.settings import log_event
 from server.sensors.sensor_manager import sensor_manager
 from server.automation.automation_engine import automation_engine
+from server.learning.learning_engine import learning_engine
 
 
 router = APIRouter()
@@ -98,10 +99,19 @@ async def sensor_ingest(task: TaskEnvelope) -> dict:
             value=float(sensor_data.value),
         )
 
+    # Increment event counter and check if learning cycle should run
+    learning_engine.increment_event_counter()
+    learning_triggered = False
+    if learning_engine.should_run_learning_cycle(threshold=50):
+        learning_engine.run_full_learning_cycle()
+        learning_engine.reset_event_counter()
+        learning_triggered = True
+
     return {
         "ok": True,
         "stored": result["stored"],
         "automation": {
             "triggered_actions": len(automation_result.get("triggered_actions", [])) if automation_result else 0,
         },
+        "learning_cycle_triggered": learning_triggered,
     }
