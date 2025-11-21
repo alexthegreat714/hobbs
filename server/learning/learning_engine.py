@@ -46,6 +46,8 @@ class LearningEngine:
         self.counter_file = self.learning_dir / "event_counter.json"
         self.events_file = self.memory_dir / "events.jsonl"
 
+        self._last_learning_cycle = None
+
         self._ensure_paths()
         logger.info("LearningEngine initialized")
 
@@ -333,6 +335,7 @@ class LearningEngine:
             Complete learning report
         """
         logger.info("Starting full learning cycle...")
+        self._last_learning_cycle = datetime.utcnow().isoformat() + "Z"
 
         # Load events
         events = self.load_memory_events(days=30)
@@ -477,6 +480,16 @@ class LearningEngine:
         except Exception:
             pass
         return threshold
+
+    @property
+    def last_learning_cycle(self) -> Optional[str]:
+        """Get timestamp of last learning cycle."""
+        if self._last_learning_cycle:
+            return self._last_learning_cycle
+
+        # Try to read from cache file
+        cache = self.load_cache()
+        return cache.get("timestamp")
 
 
 # Singleton instance

@@ -13,7 +13,7 @@ class Settings:
     """Application settings for Hobbs Agent."""
 
     AGENT_NAME: str = "hobbs"
-    VERSION: str = "0.9.0"
+    VERSION: str = "0.10.0"
 
     # Capabilities exposed by this agent
     CAPABILITIES: list = [
@@ -23,7 +23,8 @@ class Settings:
         "control_valve",
         "memory_query",
         "learning_report",
-        "vision_intelligence"
+        "vision_intelligence",
+        "multi_agent_integration"
     ]
 
     # Paths

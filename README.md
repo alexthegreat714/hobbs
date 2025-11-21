@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 9)
+# Hobbs Agent (Phase 10)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -91,6 +91,20 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Enriched camera index with vision metadata
 - Vision statistics in status endpoint
 - Full backward compatibility with Phase 4 response format
+
+### Phase 10 (Full Multi-Agent Integration)
+- Event bus for centralized inter-agent event handling
+- Congress client for policy management and heartbeats
+- Argus client for metrics collection and publishing
+- Sky client for sending summaries and status updates
+- Apollo client for economic event notifications
+- Aegis adapter for high-level action verification
+- Upgraded `/event` endpoint with real event routing
+- `run_hobbs.py` daemon script for long-lived operation
+- Periodic heartbeat to Congress (configurable interval)
+- Periodic metrics publishing to Argus
+- Policy-based permission checking
+- Integration metrics in status endpoint
 
 ## Endpoints
 
@@ -268,6 +282,14 @@ curl -X POST http://localhost:5055/control_valve \
             learning_engine.py      # Baseline and pattern computation
             rule_refinement.py      # Rule suggestion generation
             patterns.py             # Statistical utilities
+        integration/                # Phase 10: Multi-Agent Integration
+            __init__.py
+            event_bus.py            # Centralized event routing
+            congress_client.py      # Policy and heartbeat management
+            argus_client.py         # Metrics collection and publishing
+            sky_client.py           # Sky orchestrator communication
+            apollo_client.py        # Apollo economic notifications
+            aegis_adapter.py        # Action verification wrapper
         utils/
             __init__.py
             file_ops.py
@@ -322,6 +344,9 @@ curl -X POST http://localhost:5055/control_valve \
         test_automation.py          # Phase 6: Automation tests
         test_memory.py              # Phase 7: Memory tests
         test_learning.py            # Phase 8: Learning tests
+        test_vision.py              # Phase 9: Vision tests
+        test_integration.py         # Phase 10: Integration tests
+    run_hobbs.py                    # Phase 10: Daemon entry point
 ```
 
 ## Valve Control Payload Schema
@@ -423,7 +448,7 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.8.0",
+  "version": "0.10.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
@@ -439,7 +464,16 @@ The `/status` endpoint returns:
   "intruder_events_count": 15,
   "weather_summary_count": 20,
   "learning_cache_exists": true,
-  "learning_events_until_cycle": 35
+  "learning_events_until_cycle": 35,
+  "vision_events_today": 2,
+  "suspicious_events_today": 1,
+  "trajectory_history_count": 10,
+  "vision_detection_available": false,
+  "vision_ocr_available": false,
+  "policies_loaded": true,
+  "last_heartbeat": "2025-11-21T12:00:00Z",
+  "last_learning_cycle": "2025-11-21T10:00:00Z",
+  "metrics_snapshot": {"health_status": "healthy", "cpu_usage": 15.2}
 }
 ```
 
@@ -453,6 +487,15 @@ The `/status` endpoint returns:
 - `weather_summary_count`: Total entries in weather_summary.jsonl
 - `learning_cache_exists`: Whether learning cache file exists
 - `learning_events_until_cycle`: Events remaining until next learning cycle
+- `vision_events_today`: Camera events processed today
+- `suspicious_events_today`: Events with suspicion score >= 0.5
+- `trajectory_history_count`: Total trajectory tracking entries
+- `vision_detection_available`: Whether YOLO detection is available
+- `vision_ocr_available`: Whether OCR engine is available
+- `policies_loaded`: Whether Congress policies have been loaded
+- `last_heartbeat`: ISO8601 timestamp of last heartbeat sent
+- `last_learning_cycle`: ISO8601 timestamp of last learning cycle
+- `metrics_snapshot`: Last collected Argus metrics
 
 ## Automation Engine
 
@@ -812,7 +855,124 @@ Risk levels: low (<0.25), medium (0.25-0.5), high (0.5-0.75), critical (>0.75)
     suspicion_scores.jsonl    # Suspicion score history
 ```
 
+## Multi-Agent Integration (Phase 10)
+
+### Running the Daemon
+
+The `run_hobbs.py` script provides daemon-like operation with heartbeat:
+
+```bash
+# Run heartbeat loop only (server started separately)
+python run_hobbs.py
+
+# Start server and heartbeat loop together
+python run_hobbs.py --with-server
+
+# Run one heartbeat cycle and exit (for testing)
+python run_hobbs.py --single-tick
+
+# Custom intervals
+python run_hobbs.py --with-server --heartbeat-interval 30 --metrics-interval 120
+```
+
+### Event Bus
+
+The event bus handles routing of inter-agent events:
+
+```
+Supported Events:
+- weather.alert         -> Process weather alerts, trigger automation
+- security.alert        -> Handle security alerts from Aegis
+- farm.sensor.update    -> Process sensor updates
+- sky.command           -> Execute commands from Sky orchestrator
+- hobbs.memory.rebuild  -> Trigger memory consolidation
+- learning.trigger      -> Trigger learning cycle
+- congress.policy.update -> Apply new policies from Congress
+```
+
+### Congress Client
+
+Manages policy loading and heartbeat:
+
+```python
+from server.integration.congress_client import congress_client
+
+# Load and apply policies
+policies = congress_client.load_policies()
+congress_client.apply_policies(policies)
+
+# Check permission
+if congress_client.check_permission("valve_control"):
+    # Perform action
+    pass
+
+# Send heartbeat
+congress_client.send_heartbeat()
+```
+
+### Argus Client
+
+Collects and publishes metrics:
+
+```python
+from server.integration.argus_client import argus_client
+
+# Collect metrics
+metrics = argus_client.collect_metrics()
+# Returns: {cpu_usage, mem_usage, events_today, health_status, ...}
+
+# Publish to Argus
+argus_client.publish_metrics(metrics)
+```
+
+### Sky and Apollo Clients
+
+File-based communication stubs:
+
+```python
+from server.integration.sky_client import sky_client
+from server.integration.apollo_client import apollo_client
+
+# Send summary to Sky
+sky_client.send_summary({"type": "daily_report", "data": {...}})
+
+# Notify Apollo of economic event
+apollo_client.notify_event({"type": "resource_usage", "amount": 100})
+```
+
+### Aegis Adapter
+
+High-level wrapper for action verification:
+
+```python
+from server.integration.aegis_adapter import aegis_adapter
+
+# Verify any action
+result = aegis_adapter.verify_action("valve_control", {"valve_id": "main"})
+
+# Verify valve command specifically
+result = aegis_adapter.verify_valve_command("main_irrigation", "open")
+```
+
+### Integration File Paths
+
+```
+Congress:
+  ~/Desktop/Engineering/Congress/memory/hobbs_policy.json     # Policies
+  ~/Desktop/Engineering/Congress/memory/hobbs_heartbeat.log   # Heartbeat log
+  ~/Desktop/Engineering/Congress/memory/hobbs_events.log      # Event log
+
+Argus:
+  ~/Desktop/Engineering/Argus/metrics/hobbs_metrics.jsonl     # Published metrics
+
+Sky:
+  ~/Desktop/Engineering/Sky/memory/hobbs_summaries.jsonl      # Summaries sent
+
+Apollo:
+  ~/Desktop/Engineering/Apollo/memory/hobbs_econ_relevant.jsonl # Economic events
+```
+
 ## Version
 
-- Current: 0.9.0
-- Phase: 9 (Full Vision Intelligence)
+- Current: 0.10.0
+- Phase: 10 (Full Multi-Agent Integration)

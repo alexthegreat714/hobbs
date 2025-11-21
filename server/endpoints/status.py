@@ -1,7 +1,8 @@
 """
 Status endpoint for the Hobbs Agent.
 
-Provides health check and status information including sensor, weather, camera, and valve statistics.
+Provides health check and status information including sensor, weather, camera,
+valve statistics, and integration metrics.
 """
 
 from fastapi import APIRouter
@@ -16,6 +17,8 @@ from server.learning.learning_engine import learning_engine
 from server.vision.trajectory_engine import trajectory_engine
 from server.vision.suspicion_engine import suspicion_engine
 from server.vision.object_detector import object_detector
+from server.integration.congress_client import congress_client
+from server.integration.argus_client import argus_client
 
 router = APIRouter()
 
@@ -69,4 +72,9 @@ async def get_status() -> dict:
         "trajectory_history_count": trajectory_engine.get_history_count(),
         "vision_detection_available": object_detector.yolo.available,
         "vision_ocr_available": object_detector.ocr.available,
+        # Integration stats
+        "policies_loaded": congress_client.policies_loaded,
+        "last_heartbeat": congress_client.last_heartbeat,
+        "last_learning_cycle": learning_engine.last_learning_cycle,
+        "metrics_snapshot": argus_client.last_metrics,
     }
