@@ -13,6 +13,9 @@ from server.actuators.valve_controller import valve_controller
 from server.automation.automation_engine import automation_engine
 from server.memory.memory_manager import memory_manager
 from server.learning.learning_engine import learning_engine
+from server.vision.trajectory_engine import trajectory_engine
+from server.vision.suspicion_engine import suspicion_engine
+from server.vision.object_detector import object_detector
 
 router = APIRouter()
 
@@ -59,4 +62,11 @@ async def get_status() -> dict:
         "weather_summary_count": memory_manager.get_weather_summary_count(),
         "learning_cache_exists": learning_engine.cache_file.exists(),
         "learning_events_until_cycle": learning_engine.get_events_until_cycle(threshold=50),
+        # Vision stats
+        "vision_events_today": camera_manager.get_camera_events_today_count(),
+        "suspicious_events_today": suspicion_engine.get_suspicious_count_today(),
+        "average_suspicion_score_last_24h": suspicion_engine.get_average_score_last_24h(),
+        "trajectory_history_count": trajectory_engine.get_history_count(),
+        "vision_detection_available": object_detector.yolo.available,
+        "vision_ocr_available": object_detector.ocr.available,
     }

@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 8)
+# Hobbs Agent (Phase 9)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -77,6 +77,20 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - `/learning_report` endpoint (GET/POST)
 - Learning cycle triggered every 50 events
 - Learning cache and recommendations persistence
+
+### Phase 9 (Full Vision Intelligence)
+- YOLO-based object detection (with graceful fallback)
+- OCR text extraction (pytesseract/easyocr with fallback)
+- Unified object detector combining YOLO + OCR
+- Semantic tagging from detected objects
+- Multi-frame trajectory tracking
+- Movement direction inference (toward/away from house)
+- Suspiciousness scoring engine
+- Risk level classification (low/medium/high/critical)
+- Security alert automation (high suspicion triggers)
+- Enriched camera index with vision metadata
+- Vision statistics in status endpoint
+- Full backward compatibility with Phase 4 response format
 
 ## Endpoints
 
@@ -715,7 +729,90 @@ The rule refinement engine generates suggestions based on patterns:
 | `new_automation_rule` | Manual valve patterns | "Automate irrigation based on moisture" |
 | `combined_rule` | Weather correlation | "Increase irrigation during hot weather" |
 
+## Vision Intelligence (Phase 9)
+
+The `/detect_intruder` endpoint now provides full vision intelligence.
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:5055/detect_intruder \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "intruder_test",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "vision",
+    "payload": {
+      "camera_id": "woods_cam",
+      "image_base64": "<base64 encoded image>"
+    },
+    "timestamp": "2025-11-21T00:00:00Z"
+  }'
+```
+
+### Response Format
+
+```json
+{
+  "ok": true,
+  "objects": [
+    {"label": "person", "confidence": 0.92, "bbox": [100, 100, 200, 300]}
+  ],
+  "ocr_text": "ABC-1234",
+  "summary": "person detected (text detected)",
+  "tags": ["intruder", "human", "night", "has_text"],
+  "trajectory": {
+    "overall_movement": "toward_house",
+    "tracked_objects": [...],
+    "frame_count": 3
+  },
+  "suspicion_score": 0.85,
+  "risk_level": "critical",
+  "reasons": ["human detected (1)", "night time activity", "moving toward house"],
+  "alert_triggered": true,
+  "object": "person",
+  "confidence": 0.92,
+  "direction": "toward_house"
+}
+```
+
+### Suspicion Scoring
+
+The suspicion engine calculates risk based on:
+
+| Factor | Score | Description |
+|--------|-------|-------------|
+| Human detected | +0.5 | Person identified in frame |
+| Night time | +0.3 | Detection during 22:00-05:00 |
+| Toward house | +0.2 | Movement direction toward property |
+| Repeated presence | +0.25 | Same type seen within 24 hours |
+| Group pattern | +0.4 | Multiple people detected |
+| Text/plate detected | +0.15 | OCR found identifying text |
+| Vehicle at night | +0.2 | Vehicle during night hours |
+
+Risk levels: low (<0.25), medium (0.25-0.5), high (0.5-0.75), critical (>0.75)
+
+### Vision Components
+
+```
+/server/vision/
+    yolo_adapter.py      # YOLO object detection wrapper
+    ocr_adapter.py       # OCR text extraction wrapper
+    object_detector.py   # Unified detection pipeline
+    trajectory_engine.py # Multi-frame tracking
+    suspicion_engine.py  # Risk scoring engine
+```
+
+### Data Files
+
+```
+/data/vision/
+    trajectory_history.jsonl  # Movement tracking history
+    suspicion_scores.jsonl    # Suspicion score history
+```
+
 ## Version
 
-- Current: 0.8.0
-- Phase: 8 (Adaptive Learning + Rule Refinement)
+- Current: 0.9.0
+- Phase: 9 (Full Vision Intelligence)

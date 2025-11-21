@@ -155,6 +155,13 @@ class MemoryManager:
         """
         Build MemoryEvents from camera_index.jsonl.
 
+        Includes enriched vision data:
+        - bounding_boxes
+        - suspicion_score
+        - movement_label
+        - ocr_text
+        - tags
+
         Returns:
             List of created MemoryEvents
         """
@@ -173,28 +180,54 @@ class MemoryManager:
                     try:
                         entry = json.loads(line)
                         camera_id = entry.get("camera_id", "unknown")
-                        object_type = entry.get("object_detected", "unknown")
-                        confidence = entry.get("confidence", 0)
+
+                        # Primary object (backward compatible)
+                        object_type = entry.get("object", entry.get("object_detected", "unknown"))
+                        confidence = entry.get("obj_conf", entry.get("confidence", 0))
+
+                        # Vision enrichment fields
+                        objects = entry.get("objects", [])
+                        bounding_boxes = entry.get("bounding_boxes", [])
+                        suspicion_score = entry.get("suspicion_score", 0.0)
+                        risk_level = entry.get("risk_level", "low")
+                        movement_label = entry.get("movement_label", entry.get("direction", "indeterminate"))
+                        ocr_text = entry.get("ocr_text", "")
+                        entry_tags = entry.get("tags", [])
 
                         # Determine if this is an intruder event
-                        is_intruder = entry.get("intruder_detected", False)
+                        # High suspicion or human detected = intruder
+                        is_intruder = (
+                            entry.get("intruder_detected", False) or
+                            suspicion_score >= 0.5 or
+                            any(o.get("label") == "person" for o in objects)
+                        )
                         subtype = "intruder" if is_intruder else "camera_event"
 
-                        tags = [camera_id, object_type]
+                        # Build tags
+                        tags = list(set([camera_id, object_type] + entry_tags))
                         if is_intruder:
                             tags.append("intruder")
+                        if movement_label and movement_label != "indeterminate":
+                            tags.append(movement_label)
+                        if risk_level in ["high", "critical"]:
+                            tags.append("high_risk")
 
-                        # Add direction if available
-                        direction = entry.get("direction")
-                        if direction:
-                            tags.append(direction)
+                        # Build summary with vision info
+                        summary_parts = [f"Camera {camera_id}"]
+                        if objects:
+                            obj_labels = [o.get("label", "?") for o in objects[:3]]
+                            summary_parts.append(f": {', '.join(obj_labels)} detected")
+                        else:
+                            summary_parts.append(f": {object_type} detected")
+                        if suspicion_score > 0:
+                            summary_parts.append(f" (suspicion={suspicion_score:.2f})")
 
                         event = MemoryEvent(
                             event_id=self._generate_event_id("camera"),
                             timestamp=entry.get("timestamp", datetime.utcnow().isoformat() + "Z"),
                             source="camera",
                             subtype=subtype,
-                            summary=f"Camera {camera_id}: {object_type} detected (confidence={confidence:.2f})",
+                            summary="".join(summary_parts),
                             tags=tags,
                             raw_path=entry.get("image_path"),
                             metadata={
@@ -202,8 +235,15 @@ class MemoryManager:
                                 "object_detected": object_type,
                                 "confidence": confidence,
                                 "intruder_detected": is_intruder,
-                                "direction": direction,
+                                "direction": movement_label,
                                 "task_id": entry.get("task_id"),
+                                # Vision enrichment
+                                "objects": objects,
+                                "bounding_boxes": bounding_boxes,
+                                "suspicion_score": suspicion_score,
+                                "risk_level": risk_level,
+                                "movement_label": movement_label,
+                                "ocr_text": ocr_text,
                             }
                         )
                         events.append(event)
