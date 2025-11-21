@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 3)
+# Hobbs Agent (Phase 4)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -28,6 +28,16 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Weather event emitters to Congress
 - Structured forecast data for later phases
 
+### Phase 4 (Camera & Intruder Detection Framework)
+- Fully functional `/detect_intruder` endpoint
+- Camera image ingestion (base64 or URL)
+- Stubbed ML object classification (human/animal/vehicle/unknown)
+- Stubbed direction estimation (toward/away/indeterminate)
+- Camera image storage by camera ID
+- Camera index file (JSONL)
+- Intruder event emitters to Congress
+- Ready for YOLOv8 integration in later phases
+
 ## Endpoints
 
 ### Mandatory Endpoints
@@ -36,7 +46,7 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 |----------|--------|-------------|
 | `/run_task` | POST | Execute a task |
 | `/event` | POST | Receive event notifications |
-| `/status` | GET | Health check and status (includes sensor + weather stats) |
+| `/status` | GET | Health check and status (includes all stats) |
 | `/shutdown` | POST | Graceful shutdown |
 
 ### Hobbs-Specific Endpoints
@@ -45,7 +55,7 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 |----------|--------|-------------|
 | `/sensor_ingest` | POST | Ingest and store sensor data |
 | `/predict_weather` | POST | Weather prediction (remote + offline fallback) |
-| `/detect_intruder` | POST | Intruder detection requests |
+| `/detect_intruder` | POST | Camera image intruder detection |
 | `/control_valve` | POST | Valve control requests |
 
 ## Installation
@@ -77,8 +87,6 @@ pytest tests/ -v
 
 ## Testing Sensor Ingest
 
-Send test sensor data via curl:
-
 ```bash
 curl -X POST http://localhost:5055/sensor_ingest \
   -H "Content-Type: application/json" \
@@ -96,14 +104,7 @@ curl -X POST http://localhost:5055/sensor_ingest \
   }'
 ```
 
-Expected response:
-```json
-{"ok": true, "stored": true}
-```
-
 ## Testing Weather Prediction
-
-Send test weather request via curl:
 
 ```bash
 curl -X POST http://localhost:5055/predict_weather \
@@ -120,24 +121,38 @@ curl -X POST http://localhost:5055/predict_weather \
   }'
 ```
 
+## Testing Intruder Detection
+
+Send test intruder detection with base64 image:
+
+```bash
+# First, encode an image to base64
+IMAGE_BASE64=$(base64 -w0 /path/to/image.png)
+
+curl -X POST http://localhost:5055/detect_intruder \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"task_id\": \"test_intruder\",
+    \"source\": \"test\",
+    \"target\": \"hobbs\",
+    \"type\": \"intruder\",
+    \"payload\": {
+      \"camera_id\": \"woods_cam\",
+      \"image_base64\": \"${IMAGE_BASE64}\",
+      \"metadata\": {\"test\": true}
+    },
+    \"timestamp\": \"2025-11-21T00:00:00Z\"
+  }"
+```
+
 Expected response:
 ```json
 {
   "ok": true,
-  "forecast": [
-    {
-      "time": "2025-11-21T00:00",
-      "temperature": 20.5,
-      "temperature_unit": "°C",
-      "precipitation_probability": 10,
-      "wind_speed": 5.0,
-      "wind_unit": "km/h"
-    },
-    ...
-  ],
-  "confidence": 0.85,
-  "source": "remote",
-  "location": {"lat": 34.73, "lon": -86.58}
+  "object": "unknown",
+  "confidence": 0.15,
+  "direction": "indeterminate",
+  "dir_confidence": 0.10
 }
 ```
 
@@ -155,173 +170,123 @@ Expected response:
             event.py
             status.py
             shutdown.py
-            sensor_ingest.py        # Phase 2: Full sensor ingestion
-            predict_weather.py      # Phase 3: Weather prediction
-            detect_intruder.py
+            sensor_ingest.py
+            predict_weather.py
+            detect_intruder.py      # Phase 4: Intruder detection
             control_valve.py
         tasks/
             __init__.py
-            task_router.py          # Task routing logic
+            task_router.py
         events/
             __init__.py
-            event_router.py         # Event routing logic
-        sensors/                    # Phase 2: Sensor management
+            event_router.py
+        sensors/
             __init__.py
-            sensor_manager.py       # Sensor storage and indexing
-        weather/                    # Phase 3: Weather management
+            sensor_manager.py
+        weather/
             __init__.py
-            weather_manager.py      # Weather fetching and caching
-        utils/                      # Utility functions
+            weather_manager.py
+        camera/                     # Phase 4: Camera management
             __init__.py
-            file_ops.py             # File system operations
-            time_ops.py             # Timestamp utilities
-            http_ops.py             # Phase 3: HTTP request utilities
+            camera_manager.py       # Camera storage and indexing
+            classifier_stub.py      # Stubbed object classification
+            direction_stub.py       # Stubbed direction estimation
+        utils/
+            __init__.py
+            file_ops.py
+            time_ops.py
+            http_ops.py
+            image_ops.py            # Phase 4: Image utilities
     /schemas/
         __init__.py
-        shared.py                   # TaskEnvelope model
+        shared.py
     /config/
         __init__.py
-        settings.py                 # Configuration and logging
+        settings.py
     /policies/
         __init__.py
-        hobbs_policies.json         # Policy definitions
+        hobbs_policies.json
     /logs/
         .gitkeep
     /data/
         .gitkeep
-        /sensors/                   # Phase 2: Sensor data storage
+        /sensors/
             /YYYY-MM-DD/
-                sensor_type_TIMESTAMP.json
-        /weather/                   # Phase 3: Weather forecast storage
+        /weather/
             /YYYY-MM-DD/
-                weather_TIMESTAMP.json
-        /index/                     # Index files
-            sensor_index.jsonl      # Time-series sensor index
-            weather_index.jsonl     # Phase 3: Weather forecast index
+        /cameras/                   # Phase 4: Camera image storage
+            /woods_cam/
+            /driveway_cam/
+            /barn_cam/
+        /index/
+            sensor_index.jsonl
+            weather_index.jsonl
+            camera_index.jsonl      # Phase 4: Camera event index
     /tests/
         __init__.py
-        test_endpoints.py           # Endpoint tests
-        test_sensor_ingest.py       # Phase 2: Sensor ingest tests
-        test_weather.py             # Phase 3: Weather tests
+        test_endpoints.py
+        test_sensor_ingest.py
+        test_weather.py
+        test_intruder_detection.py  # Phase 4: Intruder detection tests
 ```
 
-## TaskEnvelope Schema
+## Intruder Detection Payload Schema
 
-All endpoints accept a `TaskEnvelope` with the following fields:
+The `/detect_intruder` endpoint requires:
 
 ```json
 {
-    "task_id": "string",
-    "source": "string",
-    "target": "string",
-    "type": "string",
-    "payload": {},
-    "timestamp": "ISO8601 string"
-}
-```
-
-## Sensor Payload Schema
-
-The `/sensor_ingest` endpoint requires the following payload structure:
-
-```json
-{
-    "sensor_type": "string (required)",
-    "value": "float or object (required)",
-    "unit": "string or null (optional)",
+    "camera_id": "string (required)",
+    "image_base64": "string (optional, base64 encoded)",
+    "image_url": "string (optional, URL to download)",
     "metadata": "object (optional)"
 }
 ```
 
-## Weather Payload Schema
+Must provide either `image_base64` or `image_url`.
 
-The `/predict_weather` endpoint accepts an optional payload:
+## Camera Index Format
 
-```json
-{
-    "location": {
-        "lat": "float (-90 to 90)",
-        "lon": "float (-180 to 180)"
-    }
-}
-```
-
-If no location is provided, defaults to Huntsville, AL (34.73, -86.58).
-
-## Sensor Index Format
-
-Located at: `~/Desktop/Engineering/Hobbs/data/index/sensor_index.jsonl`
+Located at: `~/Desktop/Engineering/Hobbs/data/index/camera_index.jsonl`
 
 Each line contains:
 ```json
 {
   "timestamp": "ISO8601",
-  "sensor_type": "string",
-  "value": "number or object",
-  "unit": "string or null",
-  "path": "relative file path to stored JSON"
+  "camera_id": "string",
+  "object": "human|animal|vehicle|unknown",
+  "obj_conf": "float (0.0-1.0)",
+  "direction": "toward_house|away_from_house|indeterminate",
+  "dir_conf": "float (0.0-1.0)",
+  "image_path": "relative/path/to/image.png"
 }
 ```
 
-## Weather Index Format
+## Camera Image Storage
 
-Located at: `~/Desktop/Engineering/Hobbs/data/index/weather_index.jsonl`
+Camera images are stored at: `~/Desktop/Engineering/Hobbs/data/cameras/<camera_id>/`
 
-Each line contains:
-```json
-{
-  "timestamp": "ISO8601",
-  "source": "remote or offline",
-  "forecast_path": "relative/path/to/file",
-  "confidence": "float (0.0-1.0)"
-}
+Each image is saved as:
+```
+YYYYMMDD_HHMMSS.png
 ```
 
-## Weather Forecast Storage
+## Classification Logic (Stub)
 
-Weather forecasts are stored at: `~/Desktop/Engineering/Hobbs/data/weather/YYYY-MM-DD/`
+Current stubbed classification:
+- If filename contains "test_human" → returns "human" (conf: 0.85)
+- If filename contains "test_animal" → returns "animal" (conf: 0.80)
+- If filename contains "test_vehicle" → returns "vehicle" (conf: 0.82)
+- Otherwise → returns "unknown" (conf: 0.15)
 
-Each forecast is saved as a JSON file:
-```
-weather_YYYYMMDD_HHMMSS.json
-```
+Future phases will integrate YOLOv8 for real classification.
 
-File contents:
-```json
-{
-  "source": "remote or offline",
-  "fetched_at": "ISO8601",
-  "location": {"lat": float, "lon": float},
-  "hourly": {
-    "time": ["..."],
-    "temperature_2m": [...],
-    "precipitation_probability": [...],
-    "wind_speed_10m": [...]
-  },
-  "hourly_units": {...}
-}
-```
+## Direction Logic (Stub)
 
-## Weather Prediction Logic
+Current stubbed direction estimation:
+- Always returns "indeterminate" (conf: 0.10)
 
-1. **Remote Fetch**: Attempts to fetch from Open-Meteo API
-   - Confidence: 0.85
-   - Returns 3-day hourly forecast
-
-2. **Offline Fallback**: If remote fails, generates heuristic estimate
-   - Confidence: 0.4
-   - Temperature: varies based on time of day
-   - Precipitation: ~15% chance
-   - Wind: 3-8 mph
-
-## Sensor Data Storage
-
-Sensor data is stored at: `~/Desktop/Engineering/Hobbs/data/sensors/YYYY-MM-DD/`
-
-Each sensor reading is saved as a JSON file:
-```
-sensor_type_YYYYMMDD_HHMMSS.json
-```
+Future phases will implement geometric direction inference based on camera position.
 
 ## Congress Integration
 
@@ -336,13 +301,7 @@ Events are emitted to:
 Formats:
 - Sensor: `<TIMESTAMP> hobbs.sensor_trigger sensor_type=<TYPE> value=<VALUE>`
 - Weather: `<TIMESTAMP> hobbs.weather.update FORECAST_SAVED:<PATH>`
-
-## Logging
-
-All endpoint calls are logged to:
-`~/Desktop/Engineering/Hobbs/logs/hobbs.log`
-
-Format: `<TIMESTAMP> ENDPOINT: <ENDPOINT_NAME> PAYLOAD: <JSON>`
+- Intruder: `<TIMESTAMP> hobbs.intruder_detected camera=<ID> object=<TYPE> confidence=<CONF> image=<PATH>`
 
 ## Status Response
 
@@ -351,11 +310,13 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
-  "weather_index_size": 10
+  "weather_index_size": 10,
+  "camera_events_today": 2,
+  "camera_index_size": 15
 }
 ```
 
@@ -363,8 +324,10 @@ The `/status` endpoint returns:
 - `index_size`: Total entries in sensor_index.jsonl
 - `weather_forecasts_today`: Number of weather files created today
 - `weather_index_size`: Total entries in weather_index.jsonl
+- `camera_events_today`: Number of camera images captured today
+- `camera_index_size`: Total entries in camera_index.jsonl
 
 ## Version
 
-- Current: 0.3.0
-- Phase: 3 (Weather Layer + Local Prediction Engine)
+- Current: 0.4.0
+- Phase: 4 (Camera & Intruder Detection Framework)
