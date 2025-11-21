@@ -11,6 +11,7 @@ from server.weather.weather_manager import weather_manager
 from server.camera.camera_manager import camera_manager
 from server.actuators.valve_controller import valve_controller
 from server.automation.automation_engine import automation_engine
+from server.memory.memory_manager import memory_manager
 
 router = APIRouter()
 
@@ -52,4 +53,7 @@ async def get_status() -> dict:
         "automation_rules": automation_stats.get("rules_loaded", 0),
         "automation_schedules": automation_stats.get("schedules_loaded", 0),
         "automation_history_count": automation_stats.get("history_count", 0),
+        "memory_events_count": memory_manager.get_events_count(),
+        "intruder_events_count": memory_manager.get_intruders_count(),
+        "weather_summary_count": memory_manager.get_weather_summary_count(),
     }

@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 6)
+# Hobbs Agent (Phase 7)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -53,6 +53,16 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Weather alert detection (freeze, precipitation)
 - Automation history logging
 
+### Phase 7 (RAG Memory & Pattern Insight)
+- Unified event memory format (MemoryEvent)
+- Memory consolidation from all logs
+- Keyword/tag-based retrieval
+- Time-based filtering and aggregation
+- `/memory_query` endpoint for Sky/Congress
+- Intruder statistics and pattern reports
+- Sensor trend analysis
+- Memory rebuild via `/run_task`
+
 ## Endpoints
 
 ### Mandatory Endpoints
@@ -72,6 +82,7 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 | `/predict_weather` | POST | Weather prediction (remote + offline fallback) |
 | `/detect_intruder` | POST | Camera image intruder detection |
 | `/control_valve` | POST | Valve control with Aegis verification |
+| `/memory_query` | POST | Query long-term memory and get statistics |
 
 ## Installation
 
@@ -218,6 +229,10 @@ curl -X POST http://localhost:5055/control_valve \
             rule_engine.py          # Rule evaluation engine
             schedule_engine.py      # Scheduled task engine
             anomaly_engine.py       # Anomaly detection stub
+        memory/                     # Phase 7: RAG Memory
+            __init__.py
+            memory_manager.py       # Memory consolidation
+            query_engine.py         # Memory search and stats
         utils/
             __init__.py
             file_ops.py
@@ -228,6 +243,7 @@ curl -X POST http://localhost:5055/control_valve \
         __init__.py
         shared.py
         actuators.py                # Phase 5: Valve command schema
+        memory.py                   # Phase 7: Memory event schema
     /config/
         __init__.py
         settings.py
@@ -248,6 +264,11 @@ curl -X POST http://localhost:5055/control_valve \
             valve_history.jsonl     # Valve action history
         /automation/                # Phase 6: Automation data
             automation_history.jsonl
+        /memory/                    # Phase 7: Long-term memory
+            events.jsonl            # Unified event stream
+            intruders.jsonl         # Camera/intruder events
+            weather_summary.jsonl   # Weather event summaries
+            sensor_summary.jsonl    # Sensor event summaries
         /index/
             sensor_index.jsonl
             weather_index.jsonl
@@ -260,6 +281,7 @@ curl -X POST http://localhost:5055/control_valve \
         test_intruder_detection.py
         test_control_valve.py       # Phase 5: Valve control tests
         test_automation.py          # Phase 6: Automation tests
+        test_memory.py              # Phase 7: Memory tests
 ```
 
 ## Valve Control Payload Schema
@@ -361,7 +383,7 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
@@ -372,7 +394,10 @@ The `/status` endpoint returns:
   "valve_events_count": 25,
   "automation_rules": 4,
   "automation_schedules": 3,
-  "automation_history_count": 12
+  "automation_history_count": 12,
+  "memory_events_count": 100,
+  "intruder_events_count": 15,
+  "weather_summary_count": 20
 }
 ```
 
@@ -381,6 +406,9 @@ The `/status` endpoint returns:
 - `automation_rules`: Number of loaded automation rules
 - `automation_schedules`: Number of scheduled tasks
 - `automation_history_count`: Total entries in automation_history.jsonl
+- `memory_events_count`: Total entries in events.jsonl
+- `intruder_events_count`: Total entries in intruders.jsonl
+- `weather_summary_count`: Total entries in weather_summary.jsonl
 
 ## Automation Engine
 
@@ -461,7 +489,121 @@ Each line contains:
 }
 ```
 
+## RAG Memory & Pattern Insight
+
+Hobbs maintains unified long-term memory of:
+- Sensor readings
+- Weather updates
+- Camera/intruder events
+- Valve changes
+- Automation actions
+
+Memory is stored as JSONL in:
+`~/Desktop/Engineering/Hobbs/data/memory/`
+
+### Memory Event Format
+
+Each event follows the unified MemoryEvent schema:
+
+```json
+{
+  "event_id": "evt_sensor_abc12345",
+  "timestamp": "2025-01-21T15:30:00Z",
+  "source": "sensor",
+  "subtype": "moisture",
+  "summary": "Sensor moisture=0.18 at 2025-01-21T15:30:00Z",
+  "tags": ["moisture", "low_reading"],
+  "raw_path": "/data/sensors/2025-01-21/sensor_001.json",
+  "metadata": {"value": 0.18, "unit": "ratio"}
+}
+```
+
+### Memory Query Endpoint
+
+The `/memory_query` endpoint lets Sky, Aegis, and Congress query memory:
+
+```bash
+curl -X POST http://localhost:5055/memory_query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "mem_test_01",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "memory_query",
+    "payload": {
+      "query": "intruder",
+      "source_filter": ["camera"],
+      "limit": 10
+    },
+    "timestamp": "2025-11-21T00:00:00Z"
+  }'
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `query` | string | Text search in summary (case-insensitive) |
+| `source_filter` | list | Filter by sources: sensor, weather, camera, valve, automation |
+| `subtype_filter` | list | Filter by subtypes: moisture, forecast, intruder, etc. |
+| `tags` | list | Filter by tags (all must match) |
+| `start_time` | string | Start of time range (ISO8601) |
+| `end_time` | string | End of time range (ISO8601) |
+| `limit` | int | Maximum results (default 50) |
+| `mode` | string | Special mode: "intruder_stats" |
+| `days` | int | Days for stats calculation (default 30) |
+
+### Intruder Statistics Mode
+
+Get aggregated intruder statistics:
+
+```bash
+curl -X POST http://localhost:5055/memory_query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "stats_test_01",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "memory_query",
+    "payload": {
+      "mode": "intruder_stats",
+      "days": 30
+    },
+    "timestamp": "2025-11-21T00:00:00Z"
+  }'
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "stats": {
+    "total_intruders": 15,
+    "by_camera": {"cam_woods": 8, "cam_driveway": 7},
+    "by_hour": {"06": 3, "18": 5, "22": 7},
+    "last_seen": "2025-11-20T22:15:00Z"
+  }
+}
+```
+
+### Memory Rebuild
+
+Trigger full memory rebuild via `/run_task`:
+
+```bash
+curl -X POST http://localhost:5055/run_task \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "rebuild_01",
+    "source": "admin",
+    "target": "hobbs",
+    "type": "memory_rebuild",
+    "payload": {"target": "hobbs.memory"},
+    "timestamp": "2025-11-21T00:00:00Z"
+  }'
+```
+
 ## Version
 
-- Current: 0.6.0
-- Phase: 6 (Automation Engine)
+- Current: 0.7.0
+- Phase: 7 (RAG Memory & Pattern Insight)
