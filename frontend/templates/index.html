@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hobbs - Farm Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Hobbs Farm Management</h1>
+            <div class="header-status">
+                <span id="ollama-status" class="status-indicator">Checking AI...</span>
+                <span id="hobbs-status" class="status-indicator">Checking Hobbs...</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Chat -->
+            <section class="chat-panel">
+                <h2>Assistant</h2>
+
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            Hello! I'm your Hobbs farm assistant. Ask me about sensors, weather, cameras, irrigation, or anything farm-related. I'll think deeply when needed.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reasoning Panel (collapsible) -->
+                <div class="reasoning-panel" id="reasoning-panel">
+                    <div class="reasoning-header" onclick="toggleReasoning()">
+                        <span>DeepCoder Reasoning</span>
+                        <span id="reasoning-toggle">+</span>
+                    </div>
+                    <div class="reasoning-content" id="reasoning-content">
+                        <pre id="reasoning-text">No reasoning trace yet.</pre>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <textarea
+                        id="chat-input"
+                        placeholder="Ask about your farm..."
+                        rows="2"
+                        onkeydown="handleChatKeydown(event)"
+                    ></textarea>
+                    <button id="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Cameras & Data -->
+            <section class="right-panel">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="cameras" onclick="switchTab('cameras')">Cameras</button>
+                    <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Farm Data</button>
+                    <button class="tab" data-tab="alerts" onclick="switchTab('alerts')">Alerts</button>
+                </div>
+
+                <!-- Cameras Tab -->
+                <div class="tab-content active" id="tab-cameras">
+                    <div class="camera-tabs">
+                        <button class="camera-tab active" data-view="grid" onclick="switchCameraView('grid')">Grid</button>
+                        <button class="camera-tab" data-view="single" onclick="switchCameraView('single')">Single</button>
+                    </div>
+
+                    <!-- Camera Grid -->
+                    <div class="camera-grid" id="camera-grid">
+                        <div class="camera-slot" data-slot="1" ondrop="dropCamera(event, 1)" ondragover="allowDrop(event)">
+                            <div class="camera-placeholder">
+                                <span>Drop camera here</span>
+                            </div>
+                        </div>
+                        <div class="camera-slot" data-slot="2" ondrop="dropCamera(event, 2)" ondragover="allowDrop(event)">
+                            <div class="camera-placeholder">
+                                <span>Drop camera here</span>
+                            </div>
+                        </div>
+                        <div class="camera-slot" data-slot="3" ondrop="dropCamera(event, 3)" ondragover="allowDrop(event)">
+                            <div class="camera-placeholder">
+                                <span>Drop camera here</span>
+                            </div>
+                        </div>
+                        <div class="camera-slot" data-slot="4" ondrop="dropCamera(event, 4)" ondragover="allowDrop(event)">
+                            <div class="camera-placeholder">
+                                <span>Drop camera here</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Selector -->
+                    <div class="camera-selector">
+                        <h4>Available Cameras (drag to grid)</h4>
+                        <div class="camera-list" id="camera-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div class="tab-content" id="tab-dashboard">
+                    <div class="zone-tabs" id="zone-tabs">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="zone-data" id="zone-data">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="weather-widget" id="weather-widget">
+                        <h4>Weather</h4>
+                        <div id="weather-data">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Alerts Tab -->
+                <div class="tab-content" id="tab-alerts">
+                    <div class="alerts-list" id="alerts-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer Status Bar -->
+        <footer class="footer">
+            <div class="status-bar">
+                <span>Sensors Today: <strong id="stat-sensors">-</strong></span>
+                <span>Camera Events: <strong id="stat-cameras">-</strong></span>
+                <span>Valves: <strong id="stat-valves">-</strong></span>
+                <span>Suspicious: <strong id="stat-suspicious">-</strong></span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
