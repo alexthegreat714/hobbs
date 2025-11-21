@@ -62,6 +62,7 @@
                     <button class="tab active" data-tab="cameras" onclick="switchTab('cameras')">Cameras</button>
                     <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Farm Data</button>
                     <button class="tab" data-tab="alerts" onclick="switchTab('alerts')">Alerts</button>
+                    <button class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</button>
                 </div>
 
                 <!-- Cameras Tab -->
@@ -122,6 +123,185 @@
                 <div class="tab-content" id="tab-alerts">
                     <div class="alerts-list" id="alerts-list">
                         <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-content" id="tab-settings">
+                    <h3>Camera Stream Options</h3>
+                    <p class="settings-desc">Choose how to handle RTSP camera streams. Pick one to implement.</p>
+
+                    <!-- RTSP Options Tabs -->
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" data-option="snapshots" onclick="switchSettingsTab('snapshots')">1. Snapshots</button>
+                        <button class="settings-tab" data-option="mjpeg" onclick="switchSettingsTab('mjpeg')">2. MJPEG</button>
+                        <button class="settings-tab" data-option="webrtc" onclick="switchSettingsTab('webrtc')">3. WebRTC</button>
+                    </div>
+
+                    <!-- Option 1: Snapshots (Easiest) -->
+                    <div class="settings-option active" id="option-snapshots">
+                        <div class="option-header">
+                            <span class="difficulty easy">EASIEST</span>
+                            <h4>Snapshot Polling</h4>
+                        </div>
+                        <div class="option-body">
+                            <p><strong>How it works:</strong> Capture a frame from RTSP every N seconds, serve as JPEG.</p>
+                            <p><strong>Pros:</strong></p>
+                            <ul>
+                                <li>Simple to implement</li>
+                                <li>Works in any browser</li>
+                                <li>Low bandwidth</li>
+                                <li>No transcoding server needed</li>
+                            </ul>
+                            <p><strong>Cons:</strong></p>
+                            <ul>
+                                <li>Not real-time (1-5 second delay)</li>
+                                <li>Choppy "slideshow" effect</li>
+                            </ul>
+                            <p><strong>Requirements:</strong></p>
+                            <pre>pip install opencv-python</pre>
+                            <p><strong>Implementation:</strong></p>
+                            <pre>
+import cv2
+
+def capture_snapshot(rtsp_url):
+    cap = cv2.VideoCapture(rtsp_url)
+    ret, frame = cap.read()
+    cap.release()
+    if ret:
+        _, jpeg = cv2.imencode('.jpg', frame)
+        return jpeg.tobytes()
+    return None
+
+# Flask route
+@app.route('/camera/&lt;id&gt;/snapshot')
+def snapshot(id):
+    img = capture_snapshot(cameras[id]['rtsp_url'])
+    return Response(img, mimetype='image/jpeg')
+                            </pre>
+                            <p><strong>Frontend:</strong> Just use &lt;img&gt; with refresh interval</p>
+                            <pre>setInterval(() => img.src = '/camera/1/snapshot?' + Date.now(), 2000)</pre>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: MJPEG Stream -->
+                    <div class="settings-option" id="option-mjpeg">
+                        <div class="option-header">
+                            <span class="difficulty medium">MEDIUM</span>
+                            <h4>MJPEG Transcoding</h4>
+                        </div>
+                        <div class="option-body">
+                            <p><strong>How it works:</strong> ffmpeg converts RTSP to Motion JPEG stream.</p>
+                            <p><strong>Pros:</strong></p>
+                            <ul>
+                                <li>Real-time streaming</li>
+                                <li>Native browser support (&lt;img&gt; tag)</li>
+                                <li>No JavaScript needed for playback</li>
+                            </ul>
+                            <p><strong>Cons:</strong></p>
+                            <ul>
+                                <li>Higher bandwidth than H.264</li>
+                                <li>Requires ffmpeg running</li>
+                                <li>One ffmpeg process per camera</li>
+                            </ul>
+                            <p><strong>Requirements:</strong></p>
+                            <pre>apt install ffmpeg</pre>
+                            <p><strong>Implementation:</strong></p>
+                            <pre>
+import subprocess
+
+def generate_mjpeg(rtsp_url):
+    cmd = [
+        'ffmpeg', '-i', rtsp_url,
+        '-f', 'mjpeg',
+        '-q:v', '5',
+        '-r', '10',  # 10 fps
+        'pipe:1'
+    ]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    while True:
+        chunk = proc.stdout.read(4096)
+        if not chunk:
+            break
+        yield chunk
+
+@app.route('/camera/&lt;id&gt;/stream')
+def stream(id):
+    return Response(
+        generate_mjpeg(cameras[id]['rtsp_url']),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+                            </pre>
+                            <p><strong>Frontend:</strong></p>
+                            <pre>&lt;img src="/camera/1/stream"&gt;</pre>
+                        </div>
+                    </div>
+
+                    <!-- Option 3: WebRTC -->
+                    <div class="settings-option" id="option-webrtc">
+                        <div class="option-header">
+                            <span class="difficulty hard">ADVANCED</span>
+                            <h4>WebRTC Gateway</h4>
+                        </div>
+                        <div class="option-body">
+                            <p><strong>How it works:</strong> Full WebRTC stack for real-time video.</p>
+                            <p><strong>Pros:</strong></p>
+                            <ul>
+                                <li>True real-time (&lt;500ms latency)</li>
+                                <li>Efficient H.264 passthrough</li>
+                                <li>Two-way audio possible</li>
+                                <li>Adaptive bitrate</li>
+                            </ul>
+                            <p><strong>Cons:</strong></p>
+                            <ul>
+                                <li>Complex setup</li>
+                                <li>Requires STUN/TURN servers</li>
+                                <li>More infrastructure</li>
+                            </ul>
+                            <p><strong>Options:</strong></p>
+                            <ul>
+                                <li><strong>go2rtc</strong> - Easiest WebRTC gateway</li>
+                                <li><strong>mediamtx</strong> - Full-featured media server</li>
+                                <li><strong>Janus</strong> - WebRTC server (complex)</li>
+                            </ul>
+                            <p><strong>go2rtc setup:</strong></p>
+                            <pre>
+# docker-compose.yml
+services:
+  go2rtc:
+    image: alexxit/go2rtc
+    ports:
+      - "1984:1984"   # API
+      - "8555:8555"   # WebRTC
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml
+
+# go2rtc.yaml
+streams:
+  cam1: rtsp://user:pass@192.168.1.100:554/stream
+  cam2: rtsp://user:pass@192.168.1.101:554/stream
+                            </pre>
+                            <p><strong>Frontend:</strong></p>
+                            <pre>
+&lt;video id="video"&gt;&lt;/video&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/webrtc-adapter"&gt;&lt;/script&gt;
+&lt;script&gt;
+// Connect to go2rtc WebRTC endpoint
+const pc = new RTCPeerConnection();
+// ... WebRTC negotiation code
+&lt;/script&gt;
+                            </pre>
+                        </div>
+                    </div>
+
+                    <!-- LLM Settings -->
+                    <h3 style="margin-top: 2rem;">LLM Settings</h3>
+                    <div class="settings-section">
+                        <label>Gemma Model:</label>
+                        <input type="text" id="setting-gemma" value="gemma3" class="settings-input">
+                        <label>DeepCoder Model:</label>
+                        <input type="text" id="setting-deepcoder" value="deepseek-coder" class="settings-input">
+                        <button onclick="saveSettings()" class="settings-btn">Save</button>
                     </div>
                 </div>
             </section>

@@ -539,6 +539,160 @@ body {
     background: var(--text-secondary);
 }
 
+/* Settings Tab */
+.settings-desc {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.settings-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.settings-tab {
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.settings-tab:hover {
+    border-color: var(--accent-blue);
+}
+
+.settings-tab.active {
+    background-color: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.settings-option {
+    display: none;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.settings-option.active {
+    display: block;
+}
+
+.option-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.option-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.difficulty {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.difficulty.easy {
+    background-color: var(--accent-green);
+    color: black;
+}
+
+.difficulty.medium {
+    background-color: var(--accent-orange);
+    color: black;
+}
+
+.difficulty.hard {
+    background-color: var(--accent-red);
+    color: white;
+}
+
+.option-body {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.option-body p {
+    margin: 0.75rem 0;
+}
+
+.option-body ul {
+    margin: 0.5rem 0 0.5rem 1.5rem;
+}
+
+.option-body li {
+    margin: 0.25rem 0;
+}
+
+.option-body pre {
+    background-color: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    color: var(--accent-green);
+    margin: 0.75rem 0;
+}
+
+.option-body strong {
+    color: var(--text-primary);
+}
+
+.settings-section {
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.settings-section label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.settings-input {
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.settings-btn {
+    padding: 0.5rem 1.5rem;
+    background-color: var(--accent-green);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    align-self: flex-start;
+    margin-top: 0.5rem;
+}
+
+.settings-btn:hover {
+    background-color: #22c55e;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .main-content {

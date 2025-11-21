@@ -441,3 +441,42 @@ function formatTime(isoString) {
     const date = new Date(isoString);
     return date.toLocaleTimeString();
 }
+
+// =============================================================================
+// Settings Functions
+// =============================================================================
+
+function switchSettingsTab(option) {
+    // Update tab buttons
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.option === option);
+    });
+
+    // Update option panels
+    document.querySelectorAll('.settings-option').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `option-${option}`);
+    });
+}
+
+function saveSettings() {
+    const gemmaModel = document.getElementById('setting-gemma').value;
+    const deepcoderModel = document.getElementById('setting-deepcoder').value;
+
+    // Save to localStorage
+    localStorage.setItem('hobbs_gemma_model', gemmaModel);
+    localStorage.setItem('hobbs_deepcoder_model', deepcoderModel);
+
+    // TODO: Send to backend to update reasoning_orchestrator
+    alert('Settings saved (local only for now)');
+}
+
+function loadSettings() {
+    const gemma = localStorage.getItem('hobbs_gemma_model');
+    const deepcoder = localStorage.getItem('hobbs_deepcoder_model');
+
+    if (gemma) document.getElementById('setting-gemma').value = gemma;
+    if (deepcoder) document.getElementById('setting-deepcoder').value = deepcoder;
+}
+
+// Load settings on init
+document.addEventListener('DOMContentLoaded', loadSettings);
