@@ -1,4 +1,4 @@
-# Hobbs Agent (Phase 4)
+# Hobbs Agent (Phase 5)
 
 Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 
@@ -15,9 +15,8 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Fully functional `/sensor_ingest` endpoint
 - Sensor file storage system with daily organization
 - Time-series event indexing (JSONL)
-- Sensor event emitters to Congress (stubbed)
+- Sensor event emitters to Congress
 - Query helpers for data retrieval
-- Updated `/status` with sensor statistics
 
 ### Phase 3 (Weather Layer + Local Prediction Engine)
 - Fully functional `/predict_weather` endpoint
@@ -26,17 +25,23 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 - Weather forecast caching and storage
 - Weather index file (JSONL)
 - Weather event emitters to Congress
-- Structured forecast data for later phases
 
 ### Phase 4 (Camera & Intruder Detection Framework)
 - Fully functional `/detect_intruder` endpoint
 - Camera image ingestion (base64 or URL)
-- Stubbed ML object classification (human/animal/vehicle/unknown)
-- Stubbed direction estimation (toward/away/indeterminate)
-- Camera image storage by camera ID
-- Camera index file (JSONL)
+- Stubbed ML object classification
+- Stubbed direction estimation
+- Camera image storage and indexing
 - Intruder event emitters to Congress
-- Ready for YOLOv8 integration in later phases
+
+### Phase 5 (Physical Control Layer)
+- Fully functional `/control_valve` endpoint
+- Aegis verification for all commands (stubbed)
+- Local valve state management (shadow state)
+- Persistent valve history log
+- Valve change event emitters to Congress
+- Support for open/close/toggle/set actions
+- State persistence across restarts
 
 ## Endpoints
 
@@ -56,7 +61,7 @@ Farm management agent implementing the Blank Slate Agent Ecosystem Contract.
 | `/sensor_ingest` | POST | Ingest and store sensor data |
 | `/predict_weather` | POST | Weather prediction (remote + offline fallback) |
 | `/detect_intruder` | POST | Camera image intruder detection |
-| `/control_valve` | POST | Valve control requests |
+| `/control_valve` | POST | Valve control with Aegis verification |
 
 ## Installation
 
@@ -85,75 +90,77 @@ python app.py
 pytest tests/ -v
 ```
 
-## Testing Sensor Ingest
+## Testing Valve Control
+
+Send valve control command via curl:
 
 ```bash
-curl -X POST http://localhost:5055/sensor_ingest \
+curl -X POST http://localhost:5055/control_valve \
   -H "Content-Type: application/json" \
   -d '{
-    "task_id": "test1",
-    "source": "test",
+    "task_id": "valve_test_01",
+    "source": "sky",
     "target": "hobbs",
-    "type": "sensor",
+    "type": "control",
     "payload": {
-      "sensor_type": "moisture",
-      "value": 0.18,
-      "unit": "fraction"
+      "valve_id": "main_irrigation",
+      "action": "open",
+      "value": 1.0,
+      "reason": "test_open"
     },
     "timestamp": "2025-11-21T00:00:00Z"
   }'
-```
-
-## Testing Weather Prediction
-
-```bash
-curl -X POST http://localhost:5055/predict_weather \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task_id": "test_weather",
-    "source": "test",
-    "target": "hobbs",
-    "type": "weather",
-    "payload": {
-      "location": {"lat": 34.73, "lon": -86.58}
-    },
-    "timestamp": "2025-11-21T00:00:00Z"
-  }'
-```
-
-## Testing Intruder Detection
-
-Send test intruder detection with base64 image:
-
-```bash
-# First, encode an image to base64
-IMAGE_BASE64=$(base64 -w0 /path/to/image.png)
-
-curl -X POST http://localhost:5055/detect_intruder \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"task_id\": \"test_intruder\",
-    \"source\": \"test\",
-    \"target\": \"hobbs\",
-    \"type\": \"intruder\",
-    \"payload\": {
-      \"camera_id\": \"woods_cam\",
-      \"image_base64\": \"${IMAGE_BASE64}\",
-      \"metadata\": {\"test\": true}
-    },
-    \"timestamp\": \"2025-11-21T00:00:00Z\"
-  }"
 ```
 
 Expected response:
 ```json
 {
   "ok": true,
-  "object": "unknown",
-  "confidence": 0.15,
-  "direction": "indeterminate",
-  "dir_confidence": 0.10
+  "valve_id": "main_irrigation",
+  "state": "open",
+  "value": 1.0,
+  "previous_state": "unknown",
+  "verified": true
 }
+```
+
+### Other Valve Actions
+
+**Close valve:**
+```bash
+curl -X POST http://localhost:5055/control_valve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "valve_test_02",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "control",
+    "payload": {
+      "valve_id": "main_irrigation",
+      "action": "close",
+      "reason": "end_watering"
+    },
+    "timestamp": "2025-11-21T01:00:00Z"
+  }'
+```
+
+**Set valve to 50%:**
+```bash
+curl -X POST http://localhost:5055/control_valve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "valve_test_03",
+    "source": "sky",
+    "target": "hobbs",
+    "type": "control",
+    "payload": {
+      "valve_id": "drip_line_1",
+      "action": "set",
+      "value": 0.5,
+      "reason": "partial_flow"
+    },
+    "timestamp": "2025-11-21T02:00:00Z"
+  }'
 ```
 
 ## Project Structure
@@ -161,10 +168,10 @@ Expected response:
 ```
 /Hobbs/
     README.md
-    app.py                          # FastAPI application
+    app.py
     /server/
         __init__.py
-        endpoints/                  # API endpoint routers
+        endpoints/
             __init__.py
             run_task.py
             event.py
@@ -172,8 +179,8 @@ Expected response:
             shutdown.py
             sensor_ingest.py
             predict_weather.py
-            detect_intruder.py      # Phase 4: Intruder detection
-            control_valve.py
+            detect_intruder.py
+            control_valve.py        # Phase 5: Full valve control
         tasks/
             __init__.py
             task_router.py
@@ -186,20 +193,25 @@ Expected response:
         weather/
             __init__.py
             weather_manager.py
-        camera/                     # Phase 4: Camera management
+        camera/
             __init__.py
-            camera_manager.py       # Camera storage and indexing
-            classifier_stub.py      # Stubbed object classification
-            direction_stub.py       # Stubbed direction estimation
+            camera_manager.py
+            classifier_stub.py
+            direction_stub.py
+        actuators/                  # Phase 5: Actuator control
+            __init__.py
+            valve_controller.py     # Valve state management
+            aegis_client.py         # Aegis verification stub
         utils/
             __init__.py
             file_ops.py
             time_ops.py
             http_ops.py
-            image_ops.py            # Phase 4: Image utilities
+            image_ops.py
     /schemas/
         __init__.py
         shared.py
+        actuators.py                # Phase 5: Valve command schema
     /config/
         __init__.py
         settings.py
@@ -211,82 +223,99 @@ Expected response:
     /data/
         .gitkeep
         /sensors/
-            /YYYY-MM-DD/
         /weather/
-            /YYYY-MM-DD/
-        /cameras/                   # Phase 4: Camera image storage
-            /woods_cam/
-            /driveway_cam/
-            /barn_cam/
+        /cameras/
+        /actuators/                 # Phase 5: Actuator data
+            valve_state.json        # Current valve states
+            valve_history.jsonl     # Valve action history
         /index/
             sensor_index.jsonl
             weather_index.jsonl
-            camera_index.jsonl      # Phase 4: Camera event index
+            camera_index.jsonl
     /tests/
         __init__.py
         test_endpoints.py
         test_sensor_ingest.py
         test_weather.py
-        test_intruder_detection.py  # Phase 4: Intruder detection tests
+        test_intruder_detection.py
+        test_control_valve.py       # Phase 5: Valve control tests
 ```
 
-## Intruder Detection Payload Schema
+## Valve Control Payload Schema
 
-The `/detect_intruder` endpoint requires:
+The `/control_valve` endpoint requires:
 
 ```json
 {
-    "camera_id": "string (required)",
-    "image_base64": "string (optional, base64 encoded)",
-    "image_url": "string (optional, URL to download)",
+    "valve_id": "string (required)",
+    "action": "open|close|toggle|set (required)",
+    "value": "float 0.0-1.0 (optional, for 'set' action)",
+    "reason": "string (optional)",
     "metadata": "object (optional)"
 }
 ```
 
-Must provide either `image_base64` or `image_url`.
+### Actions
 
-## Camera Index Format
+| Action | Description | Resulting State |
+|--------|-------------|-----------------|
+| `open` | Fully open the valve | state: "open", value: 1.0 |
+| `close` | Fully close the valve | state: "closed", value: 0.0 |
+| `toggle` | Toggle between open/closed | Opposite of current state |
+| `set` | Set to specific position | state: "partial", value: 0.0-1.0 |
 
-Located at: `~/Desktop/Engineering/Hobbs/data/index/camera_index.jsonl`
+## Valve State File
+
+Located at: `~/Desktop/Engineering/Hobbs/data/actuators/valve_state.json`
+
+Contains current state of all known valves:
+```json
+{
+  "main_irrigation": {
+    "state": "open",
+    "value": 1.0,
+    "last_update": "2025-01-21T15:30:00Z"
+  },
+  "drip_line_1": {
+    "state": "partial",
+    "value": 0.5,
+    "last_update": "2025-01-21T16:00:00Z"
+  }
+}
+```
+
+## Valve History Format
+
+Located at: `~/Desktop/Engineering/Hobbs/data/actuators/valve_history.jsonl`
 
 Each line contains:
 ```json
 {
   "timestamp": "ISO8601",
-  "camera_id": "string",
-  "object": "human|animal|vehicle|unknown",
-  "obj_conf": "float (0.0-1.0)",
-  "direction": "toward_house|away_from_house|indeterminate",
-  "dir_conf": "float (0.0-1.0)",
-  "image_path": "relative/path/to/image.png"
+  "valve_id": "string",
+  "action": "open|close|toggle|set",
+  "value": "float or null",
+  "previous_state": "string",
+  "new_state": "string",
+  "reason": "string or null",
+  "aegis_signature": "string",
+  "aegis_verified": true,
+  "source_task_id": "string",
+  "source_agent": "string"
 }
 ```
 
-## Camera Image Storage
+## Aegis Integration
 
-Camera images are stored at: `~/Desktop/Engineering/Hobbs/data/cameras/<camera_id>/`
+All valve commands are verified through Aegis before execution.
 
-Each image is saved as:
-```
-YYYYMMDD_HHMMSS.png
-```
+Current implementation: **Stub** (always returns verified=true)
 
-## Classification Logic (Stub)
-
-Current stubbed classification:
-- If filename contains "test_human" → returns "human" (conf: 0.85)
-- If filename contains "test_animal" → returns "animal" (conf: 0.80)
-- If filename contains "test_vehicle" → returns "vehicle" (conf: 0.82)
-- Otherwise → returns "unknown" (conf: 0.15)
-
-Future phases will integrate YOLOv8 for real classification.
-
-## Direction Logic (Stub)
-
-Current stubbed direction estimation:
-- Always returns "indeterminate" (conf: 0.10)
-
-Future phases will implement geometric direction inference based on camera position.
+Future implementation will:
+- Make HTTP POST to Aegis /verify endpoint
+- Include command details in request
+- Wait for Aegis approval before proceeding
+- Record denials in history
 
 ## Congress Integration
 
@@ -302,6 +331,7 @@ Formats:
 - Sensor: `<TIMESTAMP> hobbs.sensor_trigger sensor_type=<TYPE> value=<VALUE>`
 - Weather: `<TIMESTAMP> hobbs.weather.update FORECAST_SAVED:<PATH>`
 - Intruder: `<TIMESTAMP> hobbs.intruder_detected camera=<ID> object=<TYPE> confidence=<CONF> image=<PATH>`
+- Valve: `<TIMESTAMP> hobbs.valve_change VALVE:<ID> ACTION:<ACTION> VALUE:<VALUE>`
 
 ## Status Response
 
@@ -310,24 +340,22 @@ The `/status` endpoint returns:
 {
   "status": "ok",
   "agent": "hobbs",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "sensors_today": 5,
   "index_size": 42,
   "weather_forecasts_today": 3,
   "weather_index_size": 10,
   "camera_events_today": 2,
-  "camera_index_size": 15
+  "camera_index_size": 15,
+  "valves_known": 3,
+  "valve_events_count": 25
 }
 ```
 
-- `sensors_today`: Number of sensor files created today
-- `index_size`: Total entries in sensor_index.jsonl
-- `weather_forecasts_today`: Number of weather files created today
-- `weather_index_size`: Total entries in weather_index.jsonl
-- `camera_events_today`: Number of camera images captured today
-- `camera_index_size`: Total entries in camera_index.jsonl
+- `valves_known`: Number of valves in state file
+- `valve_events_count`: Total entries in valve_history.jsonl
 
 ## Version
 
-- Current: 0.4.0
-- Phase: 4 (Camera & Intruder Detection Framework)
+- Current: 0.5.0
+- Phase: 5 (Physical Control Layer)

@@ -1,7 +1,7 @@
 """
 Status endpoint for the Hobbs Agent.
 
-Provides health check and status information including sensor, weather, and camera statistics.
+Provides health check and status information including sensor, weather, camera, and valve statistics.
 """
 
 from fastapi import APIRouter
@@ -9,6 +9,7 @@ from config.settings import settings, log_event
 from server.sensors.sensor_manager import sensor_manager
 from server.weather.weather_manager import weather_manager
 from server.camera.camera_manager import camera_manager
+from server.actuators.valve_controller import valve_controller
 
 router = APIRouter()
 
@@ -27,6 +28,8 @@ async def get_status() -> dict:
         - weather_index_size: number of entries in weather_index.jsonl
         - camera_events_today: number of camera images for current date
         - camera_index_size: number of entries in camera_index.jsonl
+        - valves_known: number of valves in state
+        - valve_events_count: number of entries in valve_history.jsonl
     """
     log_event("status", {"action": "status_check"})
 
@@ -40,4 +43,6 @@ async def get_status() -> dict:
         "weather_index_size": weather_manager.get_index_size(),
         "camera_events_today": camera_manager.get_camera_events_today_count(),
         "camera_index_size": camera_manager.get_index_size(),
+        "valves_known": valve_controller.get_valves_count(),
+        "valve_events_count": valve_controller.get_history_count(),
     }
